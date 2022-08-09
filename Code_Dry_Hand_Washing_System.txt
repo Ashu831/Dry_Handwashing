@@ -1,0 +1,86 @@
+#define TRIG_PIN   7 //  connected to Ultrasonic Sensor's TRIG pin
+#define ECHO_PIN   8 // connected to Ultrasonic Sensor's ECHO pin
+#define SERVO_PIN1  4
+#define SERVO_PIN2  3
+#define RELAY_PIN1  6
+#define RELAY_PIN2  5 // connected to Relay's pin
+#define DISTANCE_THRESHOLD 50// centimeters
+#include <Wire.h> 
+#include <Servo.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
+// The below are variables, which can be changed
+float duration_us, distance_cm;
+Servo servo1;
+Servo servo2;
+
+void setup() {
+  Serial.begin (9600); 
+  servo1.attach(SERVO_PIN1);
+  servo1.write(0);
+  servo2.attach(SERVO_PIN2);
+  servo2.write(0);
+           // initialize serial port
+  pinMode(TRIG_PIN, OUTPUT);   //  pin to output mode
+  pinMode(ECHO_PIN, INPUT);    //  pin to input mode
+  pinMode(RELAY_PIN1, OUTPUT); //  pin to output mode
+  pinMode(RELAY_PIN2, OUTPUT); //  pin to output mode
+  lcd.init();                  // initialize the lcd 
+  lcd.backlight();
+}
+
+void loop() {
+  // generate 10-microsecond pulse to TRIG pin
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  // measure duration of pulse from ECHO pin
+  duration_us = pulseIn(ECHO_PIN, HIGH);
+  // calculate the distance
+  distance_cm = 0.017 * duration_us;
+
+  if (distance_cm < DISTANCE_THRESHOLD)
+  {
+    servo1.write(150);
+    servo2.write(0);
+    
+    digitalWrite(RELAY_PIN1, HIGH); // turn on Relay
+    digitalWrite(RELAY_PIN2, LOW); // turn off Relay
+    digitalWrite(4,HIGH);
+    lcd.setCursor(0,0);
+    lcd.print("Soap.");
+    delay(15000);
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Water.");
+    digitalWrite(RELAY_PIN2, HIGH); // turn on Relay
+    digitalWrite(RELAY_PIN1, LOW); // turn off Relay
+    delay(15000);
+    lcd.clear();
+  //---------------------------------------------------
+  
+  }
+  else
+  {
+    servo1.write(0);
+    servo2.write(150);
+    
+    lcd.setCursor(0,0);
+    lcd.print("System off!");
+    digitalWrite(4,LOW);
+    digitalWrite(RELAY_PIN1, HIGH);  // turn off Relay
+    digitalWrite(RELAY_PIN2, HIGH);  // turn off Relay
+    delay(1000);
+    lcd.clear();
+  }
+
+  // print the value to Serial Monitor
+  Serial.print("distance: ");
+  Serial.print(distance_cm);
+  Serial.println("cm");
+
+  delay(500);
+}
